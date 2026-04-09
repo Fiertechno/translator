@@ -3,123 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>وەرگێڕی سێ زمانی پێشکەوتوو</title>
+    <title>وەرگێڕی زیرەکی دەستکرد (سۆرانی - بادینی - عەرەبی)</title>
     <style>
-        :root { --p: #1a73e8; --bg: #f1f3f4; }
-        body { font-family: 'Tahoma', sans-serif; background: var(--bg); margin: 0; padding: 15px; }
-        .wrapper { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: var(--p); margin-bottom: 20px; }
-        .input-group { margin-bottom: 20px; }
-        select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; margin-bottom: 10px; background: #fff; }
-        textarea { width: 100%; height: 140px; padding: 15px; border: 2px solid #eee; border-radius: 10px; font-size: 18px; box-sizing: border-box; outline: none; transition: 0.3s; resize: none; }
-        textarea:focus { border-color: var(--p); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background: #f8f9fa; border: 1px solid #eee; padding: 15px; border-radius: 10px; border-top: 4px solid var(--p); }
-        .card h4 { margin: 0 0 10px 0; font-size: 14px; color: #666; }
-        .out { font-size: 18px; min-height: 40px; color: #222; font-weight: bold; line-height: 1.6; }
-        .loader { text-align: center; font-size: 12px; color: #888; margin-top: 10px; display: none; }
-        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        :root { --primary: #059669; --accent: #10b981; --bg: #f0fdf4; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: var(--primary); font-size: 24px; margin-bottom: 25px; }
+        .input-box { margin-bottom: 20px; }
+        select { padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; width: 100%; font-size: 16px; margin-bottom: 10px; cursor: pointer; }
+        textarea { width: 100%; height: 160px; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 19px; box-sizing: border-box; outline: none; transition: 0.3s; line-height: 1.6; resize: none; }
+        textarea:focus { border-color: var(--primary); background: #f9fafb; }
+        .results { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #ffffff; border: 1px solid #f1f5f9; padding: 20px; border-radius: 15px; border-top: 5px solid var(--primary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card h3 { margin: 0 0 10px 0; font-size: 14px; color: #64748b; font-weight: 600; }
+        .output { font-size: 19px; min-height: 50px; color: #1e293b; line-height: 1.7; font-weight: 500; }
+        .loader { text-align: center; font-size: 13px; color: var(--primary); margin-top: 10px; display: none; font-weight: bold; }
+        @media (max-width: 600px) { .results { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
-    <h2>وەرگێڕی سۆرانی - بادینی - عەرەبی</h2>
-    
-    <div class="input-group">
-        <select id="lang">
+<div class="container">
+    <h1>وەرگێڕی زیرەکی کوردی و عەرەبی</h1>
+
+    <div class="input-box">
+        <select id="srcLang" onchange="translate()">
             <option value="ckb">کوردی سۆرانی</option>
-            <option value="ku">کوردی بادینی</option>
+            <option value="ku">کوردی بادینی (ئارامی)</option>
             <option value="ar">عەرەبی</option>
         </select>
-        <textarea id="text" placeholder="لێرە بنوسە..."></textarea>
-        <div id="load" class="loader">خەریکی وەرگێڕانە...</div>
+        <textarea id="inp" placeholder="لێرە بنوسە..." oninput="debounce()"></textarea>
+        <div id="loading" class="loader">خەریکی کارکردنە بە زیرەکی دەستکرد...</div>
     </div>
 
-    <div class="grid">
+    <div class="results">
         <div class="card">
-            <h4 id="l1">ئەنجام ١</h4>
-            <div id="r1" class="out">---</div>
+            <h3 id="l1">ئەنجام ١</h3>
+            <div id="r1" class="output">---</div>
         </div>
         <div class="card">
-            <h4 id="l2">ئەنجام ٢</h4>
-            <div id="r2" class="out">---</div>
+            <h3 id="l2">ئەنجام ٢</h3>
+            <div id="r2" class="output">---</div>
         </div>
     </div>
 </div>
 
 <script>
-    const input = document.getElementById('text');
-    const lang = document.getElementById('lang');
     let timer;
-
-    // فەنکشنی گۆڕینی پیتی لاتینی بادینی بۆ عەرەبی
-    function toBadini(t) {
-        const m = {
-            'a':'ا','b':'ب','c':'ج','ç':'چ','d':'د','e':'ە','ê':'ێ','f':'ف','g':'گ','h':'ه',
-            'i':'','î':'ی','j':'ژ','k':'ک','l':'ل','m':'م','n':'ن','o':'ۆ','p':'پ','q':'ق',
-            'r':'ر','s':'س','ş':'ش','t':'ت','u':'و','û':'وو','v':'ڤ','w':'و','x':'خ','y':'ی','z':'ز'
-        };
-        let r = t.toLowerCase();
-        let res = "";
-        for(let c of r) { res += m[c] || c; }
-        return res.replace(/\b(ا|ە|ۆ|و|ێ|ی|وو)/g, 'ئ$1');
+    function debounce() {
+        clearTimeout(timer);
+        document.getElementById('loading').style.display = 'block';
+        timer = setTimeout(translate, 1000);
     }
 
-    // گۆڕینی بادینی عەرەبی بۆ لاتینی بۆ ئەوەی گوگڵ لێی تێبگات
-    function toLat(t) {
-        const m = {'چ':'ç','ش':'ş','ژ':'j','پ':'p','گ':'g','ڤ':'v','ێ':'ê','ی':'î','وو':'û','ۆ':'o','و':'u','ا':'a','ە':'e','خ':'x','ق':'q','ج':'c','ک':'k','ه':'h','ئ':''};
-        let res = t;
-        for(let k in m) { res = res.split(k).join(m[k]); }
+    // سیستەمی زیرەکی گۆڕینی پیتی لاتینی بۆ بادینی (ئارامی)
+    function convertToBadini(text) {
+        const map = {
+            'ç':'چ', 'ş':'ش', 'ژ':'j', 'p':'پ', 'g':'گ', 'v':'ڤ',
+            'ê':'ێ', 'î':'ی', 'û':'وو', 'o':'ۆ', 'u':'و', 'a':'ا', 'e':'ە',
+            'x':'خ', 'q':'ق', 'w':'و', 'h':'ه', 'c':'ج', 'k':'ک', 'y':'ی', 'z':'ز', 's':'س', 'd':'د', 'f':'ف', 't':'ت', 'b':'ب', 'n':'ن', 'm':'م', 'r':'ر', 'l':'ل'
+        };
+        let res = text.toLowerCase();
+        let out = "";
+        for (let char of res) {
+            out += map[char] || char;
+        }
+        // چاککردنی 'ئ' و پیتەکان لە سەرەتای ڕستە
+        return out.replace(/\b(ا|ە|ۆ|و|ێ|ی|وو)/g, 'ئ$1').replace(/وووو/g, 'وو');
+    }
+
+    // گۆڕینی بادینی بۆ لاتینی بۆ ئەوەی AI لێی تێبگات
+    function toLatin(text) {
+        const map = {'چ':'ç','ش':'ş','ژ':'j','پ':'p','گ':'g','ڤ':'v','ێ':'ê','ی':'î','وو':'û','ۆ':'o','و':'u','ا':'a','ە':'e','خ':'x','ق':'q','ج':'c','ک':'k','ه':'h','ئ':''};
+        let res = text;
+        for (let key in map) { res = res.split(key).join(map[key]); }
         return res;
     }
 
-    input.addEventListener('input', () => {
-        clearTimeout(timer);
-        document.getElementById('load').style.display = 'block';
-        timer = setTimeout(start, 1000);
-    });
+    async function translate() {
+        const text = document.getElementById('inp').value.trim();
+        const src = document.getElementById('srcLang').value;
+        const r1 = document.getElementById('r1');
+        const r2 = document.getElementById('r2');
+        const l1 = document.getElementById('l1');
+        const l2 = document.getElementById('l2');
 
-    async function start() {
-        const val = input.value.trim();
-        const src = lang.value;
-        if(!val) { 
-            document.getElementById('r1').innerText = "---";
-            document.getElementById('r2').innerText = "---";
-            document.getElementById('load').style.display = 'none';
-            return; 
+        if (!text) {
+            r1.innerText = "---"; r2.innerText = "---";
+            document.getElementById('loading').style.display = 'none';
+            return;
         }
 
-        let q = val;
-        if(src === 'ku') q = toLat(val);
+        let query = text;
+        if (src === 'ku') query = toLatin(text);
 
         let targets = [];
-        if(src === 'ckb') {
-            targets = [{l:'ku', n:'بادینی', el:'r1', lbl:'l1'}, {l:'ar', n:'عەرەبی', el:'r2', lbl:'l2'}];
-        } else if(src === 'ku') {
-            targets = [{l:'ckb', n:'سۆرانی', el:'r1', lbl:'l1'}, {l:'ar', n:'عەرەبی', el:'r2', lbl:'l2'}];
+        if (src === 'ckb') {
+            targets = [{tl:'ku', n:'کوردی بادینی', el:r1, lbl:l1, isB:true}, {tl:'ar', n:'عەرەبی', el:r2, lbl:l2, isB:false}];
+        } else if (src === 'ku') {
+            targets = [{tl:'ckb', n:'کوردی سۆرانی', el:r1, lbl:l1, isB:false}, {tl:'ar', n:'عەرەبی', el:r2, lbl:l2, isB:false}];
         } else {
-            targets = [{l:'ckb', n:'سۆرانی', el:'r1', lbl:'l1'}, {l:'ku', n:'بادینی', el:'r2', lbl:'l2'}];
+            targets = [{tl:'ckb', n:'کوردی سۆرانی', el:r1, lbl:l1, isB:false}, {tl:'ku', n:'کوردی بادینی', el:r2, lbl:l2, isB:true}];
         }
 
-        for(let t of targets) {
-            document.getElementById(t.lbl).innerText = t.n;
+        for (let t of targets) {
+            t.lbl.innerText = t.n;
             try {
-                const api = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src==='ku'?'ku':src}&tl=${t.l}&dt=t&q=${encodeURIComponent(q)}`;
-                const res = await fetch(api);
-                const data = await res.json();
-                let result = data[0].map(x => x[0]).join('');
-                
-                if(t.l === 'ku') {
-                    document.getElementById(t.el).innerText = toBadini(result);
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src==='ku'?'ku':src}&tl=${t.tl}&dt=t&q=${encodeURIComponent(query)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                let final = data[0].map(x => x[0]).join('');
+
+                if (t.isB) {
+                    t.el.innerText = convertToBadini(final);
                 } else {
-                    document.getElementById(t.el).innerText = result;
+                    t.el.innerText = final;
                 }
-            } catch(e) {
-                document.getElementById(t.el).innerText = "هەڵە لە پەیوەندی";
+            } catch (e) {
+                t.el.innerText = "هەڵە لە وەرگێڕان ڕوویدا";
             }
         }
-        document.getElementById('load').style.display = 'none';
+        document.getElementById('loading').style.display = 'none';
     }
 </script>
 
