@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>وەرگێڕی سێ ڕەهەندی (سۆرانی - بادینی - عەرەبی)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --bg: #f4f7f6;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #eee;
+            font-size: 18px;
+            box-sizing: border-box;
+            resize: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        .output-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .output-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .output-box {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-right: 5px solid var(--accent);
+        }
+
+        .output-box h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: var(--secondary);
+        }
+
+        .result-text {
+            font-size: 18px;
+            min-height: 50px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>وەرگێڕی کوردی و عەرەبی</h1>
+
+    <div class="input-section">
+        <label for="sourceLang">زمانی سەرەکی هەڵبژێرە:</label>
+        <select id="sourceLang" onchange="translateAll()">
+            <option value="sorani">کوردی سۆرانی</option>
+            <option value="badini">کوردی بادینی</option>
+            <option value="arabic">عەرەبی</option>
+        </select>
+        
+        <textarea id="inputText" placeholder="لێرە بنوسە..." oninput="translateAll()"></textarea>
+    </div>
+
+    <div class="output-grid">
+        <div class="output-box" id="box1">
+            <h3 id="label1">بادینی</h3>
+            <div class="result-text" id="res1">---</div>
+        </div>
+        <div class="output-box" id="box2">
+            <h3 id="label2">عەرەبی</h3>
+            <div class="result-text" id="res2">---</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        سیستەمی وەرگێڕانی ناوخۆیی - بێ پێویستی بە ئینتەرنێت
+    </div>
+</div>
+
+<script>
+    // فەرهەنگی وشەکان (دەتوانیت وشەی زۆری بۆ زیاد بکەیت)
+    const dictionary = {
+        "سڵاو": { "badini": "سڵاڤ", "arabic": "مرحباً" },
+        "باشی": { "badini": "باشی", "arabic": "كيف حالك" },
+        "سوپاس": { "badini": "سوپاس", "arabic": "شكراً" },
+        "نان": { "badini": "نان", "arabic": "خبز" },
+        "ئاو": { "badini": "ئاڤ", "arabic": "ماء" },
+        "ماڵ": { "badini": "مال", "arabic": "بيت" },
+        "خۆش": { "badini": "خۆش", "arabic": "جميل" },
+        "گەورە": { "badini": "مەزن", "arabic": "كبير" },
+        "بچوک": { "badini": "بچیک", "arabic": "صغير" },
+        "بڕۆ": { "badini": "ھەرە", "arabic": "اذهب" },
+        "وەرە": { "badini": "وەرە", "arabic": "تعال" },
+        "من": { "badini": "ئەز", "arabic": "أنا" },
+        "تۆ": { "badini": "تۆ", "arabic": "أنت" },
+        "ئێمە": { "badini": "ئەم", "arabic": "نحن" }
+    };
+
+    // دروستکردنی پێچەوانەی فەرهەنگەکە بۆ زمانەکانی تر
+    function getTranslation(text, fromLang, toLang) {
+        if (!text) return "---";
+        
+        let words = text.split(" ");
+        let translatedWords = words.map(word => {
+            // گەڕان لەناو فەرهەنگ
+            for (let key in dictionary) {
+                let entry = dictionary[key];
+                let values = { "sorani": key, "badini": entry.badini, "arabic": entry.arabic };
+                
+                if (values[fromLang] === word) {
+                    return values[toLang];
+                }
+            }
+
+            // یاسای گۆڕینی سۆرانی بۆ بادینی (ئەگەر وشەکە لە فەرهەنگ نەبوو)
+            if (fromLang === "sorani" && toLang === "badini") {
+                return word
+                    .replace(/^دە/g, "د")
+                    .replace(/^ئە/g, "ئـ")
+                    .replace(/او$/g, "اڤ")
+                    .replace(/بۆ/g, "بو");
+            }
+            
+            if (fromLang === "badini" && toLang === "sorani") {
+                return word
+                    .replace(/^د/g, "دە")
+                    .replace(/^ئـ/g, "ئە")
+                    .replace(/اڤ$/g, "او")
+                    .replace(/بو/g, "بۆ");
+            }
+
+            return word; // ئەگەر وەرگێڕانی بۆ نەدۆزرایەوە خۆی دابنێوە
+        });
+
+        return translatedWords.join(" ");
+    }
+
+    function translateAll() {
+        const text = document.getElementById("inputText").value.trim();
+        const fromLang = document.getElementById("sourceLang").value;
+        
+        const res1 = document.getElementById("res1");
+        const res2 = document.getElementById("res2");
+        const label1 = document.getElementById("label1");
+        const label2 = document.getElementById("label2");
+
+        if (fromLang === "sorani") {
+            label1.innerText = "کوردی بادینی";
+            label2.innerText = "عەرەبی";
+            res1.innerText = getTranslation(text, "sorani", "badini");
+            res2.innerText = getTranslation(text, "sorani", "arabic");
+        } 
+        else if (fromLang === "badini") {
+            label1.innerText = "کوردی سۆرانی";
+            label2.innerText = "عەرەبی";
+            res1.innerText = getTranslation(text, "badini", "sorani");
+            res2.innerText = getTranslation(text, "badini", "arabic");
+        } 
+        else if (fromLang === "arabic") {
+            label1.innerText = "کوردی سۆرانی";
+            label2.innerText = "کوردی بادینی";
+            res1.innerText = getTranslation(text, "arabic", "sorani");
+            res2.innerText = getTranslation(text, "arabic", "badini");
+        }
+    }
+</script>
+
+</body>
+</html>
